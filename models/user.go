@@ -1,10 +1,7 @@
 package models
 
-type BaseUser struct {
-	Id int `json:"user_id"`
-}
-
-type GetUser struct {
-	BaseUser
-	SlugsList []*Slug `json:"slugs_list"`
+type User struct {
+	Id             int     `json:"user_id"`
+	SlugsListToAdd []*Slug `json:"slugs_list_to_add,omitempty"`
+	SlugsListToDel []*Slug `json:"slugs_list_to_del,omitempty"`
 }

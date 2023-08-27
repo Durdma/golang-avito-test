@@ -19,7 +19,7 @@ func NewUsersController(usersService *services.UsersService) *UsersController {
 	return &UsersController{usersService: usersService}
 }
 
-func (uh UsersController) CreateUser(ctx *gin.Context) {
+func (uh UsersController) AddUser(ctx *gin.Context) {
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		log.Println("Error while reading create user request body!", err)
@@ -27,7 +27,7 @@ func (uh UsersController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	var user models.BaseUser
+	var user models.User
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates user request body", err)
@@ -35,7 +35,7 @@ func (uh UsersController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	response, responseErr := uh.usersService.CreateNewUser(&user)
+	response, responseErr := uh.usersService.AddUser(&user)
 	if responseErr != nil {
 		ctx.JSON(responseErr.Status, responseErr)
 		return
@@ -55,13 +55,14 @@ func (uh UsersController) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (uh UsersController) DelUser(ctx *gin.Context) {
-	userId := ctx.Param("id")
-	response, responseErr := uh.usersService.DelUser(userId)
-	if responseErr != nil {
-		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
-		return
-	}
+// Подумать необходим ли данный поинт
+// func (uh UsersController) DelUser(ctx *gin.Context) {
+// 	userId := ctx.Param("id")
+// 	response, responseErr := uh.usersService.DelUser(userId)
+// 	if responseErr != nil {
+// 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK, response)
-}
+// 	ctx.JSON(http.StatusOK, response)
+// }

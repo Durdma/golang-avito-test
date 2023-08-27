@@ -24,7 +24,7 @@ func InitHttpServer() HttpServer {
 
 	usersRouter := router.Group("/user")
 	{
-		usersRouter.POST("/", usersController.CreateUser)
+		usersRouter.POST("/", usersController.AddUser)
 		usersRouter.GET("/:id", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /user/:id GET method", "id": ctx.Param("id")})
 		})

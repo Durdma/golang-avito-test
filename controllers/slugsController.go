@@ -27,7 +27,7 @@ func (us SlugsController) CreateSlug(ctx *gin.Context) {
 		return
 	}
 
-	var slug models.BaseSlug
+	var slug models.Slug
 	err = json.Unmarshal(body, &slug)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates slug request body", err)
@@ -45,8 +45,8 @@ func (us SlugsController) CreateSlug(ctx *gin.Context) {
 }
 
 func (us SlugsController) DelSlug(ctx *gin.Context) {
-	slugId := ctx.Param("id")
-	response, responseErr := us.slugsService.DelSlug(slugId)
+	slugName := ctx.Param("name")
+	response, responseErr := us.slugsService.DelSlug(slugName)
 	if responseErr != nil {
 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
 		return
@@ -56,7 +56,7 @@ func (us SlugsController) DelSlug(ctx *gin.Context) {
 }
 
 func (us SlugsController) PutSlug(ctx *gin.Context) {
-	slugId := ctx.Param("id")
+	slugId := ctx.Param("name")
 
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
@@ -65,7 +65,7 @@ func (us SlugsController) PutSlug(ctx *gin.Context) {
 		return
 	}
 
-	var slug *models.BaseSlug
+	var slug *models.Slug
 	err = json.Unmarshal(body, &slug)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates slug request body", err)
