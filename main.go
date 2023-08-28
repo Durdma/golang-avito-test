@@ -7,7 +7,7 @@ import (
 
 func main() {
 	log.Println("Starting App...")
-	server := server.InitHttpServer()
+	server := server.InitHttpServer(server.InitDatabase())
 
 	server.RunServer()
 }

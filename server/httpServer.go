@@ -2,23 +2,30 @@ package server
 
 import (
 	"avito-test/controllers"
+	"avito-test/repositories"
 	"avito-test/services"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type HttpServer struct {
 	router          *gin.Engine
 	usersController *controllers.UsersController
+	slugsController *controllers.SlugsController
 }
 
 // For testing on early stages
-func InitHttpServer() HttpServer {
+func InitHttpServer(dbHandler *gorm.DB) HttpServer {
+	slugsRepository := repositories.NewSlugsRepository(dbHandler)
+
 	usersService := services.NewUsersService(nil, nil)
+	slugsService := services.NewSlugsService(nil, slugsRepository)
 
 	usersController := controllers.NewUsersController(usersService)
+	slugsController := controllers.NewSlugsController(slugsService)
 
 	router := gin.Default()
 
@@ -35,12 +42,8 @@ func InitHttpServer() HttpServer {
 
 	slugsRouter := router.Group("/slug")
 	{
-		slugsRouter.POST("/", func(ctx *gin.Context) {
-			ctx.String(http.StatusOK, "PLUG for /slug/ POST method")
-		})
-		slugsRouter.DELETE("/:id", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /slug/:id DELETE method", "id": ctx.Param("id")})
-		})
+		slugsRouter.POST("/", slugsController.CreateSlug)
+		slugsRouter.DELETE("/:name", slugsController.DelSlug)
 		slugsRouter.PUT("/:id", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /slug/:id PUT method", "id": ctx.Param("id")})
 		})
@@ -50,7 +53,7 @@ func InitHttpServer() HttpServer {
 		ctx.String(http.StatusOK, "hello world")
 	})
 
-	return HttpServer{router: router, usersController: usersController}
+	return HttpServer{router: router, usersController: usersController, slugsController: slugsController}
 }
 
 func (hs *HttpServer) RunServer() {

@@ -4,6 +4,7 @@ import (
 	"avito-test/models"
 	"avito-test/services"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -27,7 +28,7 @@ func (us SlugsController) CreateSlug(ctx *gin.Context) {
 		return
 	}
 
-	var slug models.Slug
+	var slug models.CreateSlug
 	err = json.Unmarshal(body, &slug)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates slug request body", err)
@@ -40,7 +41,7 @@ func (us SlugsController) CreateSlug(ctx *gin.Context) {
 		ctx.JSON(responseErr.Status, responseErr)
 		return
 	}
-
+	fmt.Printf("response \n %+v\n", response)
 	ctx.JSON(http.StatusCreated, response)
 }
 
