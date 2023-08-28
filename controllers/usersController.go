@@ -4,6 +4,7 @@ import (
 	"avito-test/models"
 	"avito-test/services"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -27,14 +28,14 @@ func (uh UsersController) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
+	var user models.CreateUser
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates user request body", err)
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
+	fmt.Printf("%+v\n", user)
 	response, responseErr := uh.usersService.AddUser(&user)
 	if responseErr != nil {
 		ctx.JSON(responseErr.Status, responseErr)

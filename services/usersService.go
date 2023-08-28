@@ -14,20 +14,20 @@ func NewUsersService(usersRepository *repositories.UsersRepository, slugsReposit
 	return &UsersService{usersRepository: usersRepository, slugsRepository: slugsRepository}
 }
 
-func (us UsersService) AddUser(user *models.User) (*models.User, *models.ResponseError) {
-	responseErr := ValidateUser(user)
-	if responseErr != nil {
-		return nil, responseErr
-	}
+func (us UsersService) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
+	//responseErr := ValidateUser(user)
+	// if responseErr != nil {
+	// 	return nil, responseErr
+	// }
 
 	return us.usersRepository.AddUser(user)
 }
 
 func (us UsersService) GetUser(userId string) (*models.User, *models.ResponseError) {
-	responseErr := ValidateUserId(userId)
-	if responseErr != nil {
-		return nil, responseErr
-	}
+	// responseErr := ValidateUserId(userId)
+	// if responseErr != nil {
+	// 	return nil, responseErr
+	// }
 
 	return us.usersRepository.GetUser(userId)
 }

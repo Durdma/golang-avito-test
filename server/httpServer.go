@@ -20,8 +20,9 @@ type HttpServer struct {
 // For testing on early stages
 func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 	slugsRepository := repositories.NewSlugsRepository(dbHandler)
+	usersRepository := repositories.NewUsersRepository(dbHandler)
 
-	usersService := services.NewUsersService(nil, nil)
+	usersService := services.NewUsersService(usersRepository, nil)
 	slugsService := services.NewSlugsService(nil, slugsRepository)
 
 	usersController := controllers.NewUsersController(usersService)
@@ -32,9 +33,7 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 	usersRouter := router.Group("/user")
 	{
 		usersRouter.POST("/", usersController.AddUser)
-		usersRouter.GET("/:id", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /user/:id GET method", "id": ctx.Param("id")})
-		})
+		usersRouter.GET("/:id", usersController.GetUser)
 		usersRouter.DELETE("/:id", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /user/:id DELETE method", "id": ctx.Param("id")})
 		})

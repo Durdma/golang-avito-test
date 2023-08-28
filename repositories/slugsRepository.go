@@ -18,10 +18,10 @@ func NewSlugsRepository(dbHandler *gorm.DB) *SlugsRepository {
 }
 
 // TODO Переделать сообщение об ошибки на internal server error
-func (sr SlugsRepository) CreateNewSlug(slugData *models.CreateSlug) (*models.Slug, *models.ResponseError) {
+func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, *models.ResponseError) {
 	now := time.Now()
 	newSlug := models.Slug{
-		SlugName:  slugData.SlugName,
+		SlugName:  slug.SlugName,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -35,7 +35,7 @@ func (sr SlugsRepository) CreateNewSlug(slugData *models.CreateSlug) (*models.Sl
 	}
 	return &models.Slug{
 		SlugId:    newSlug.SlugId,
-		SlugName:  slugData.SlugName,
+		SlugName:  slug.SlugName,
 		CreatedAt: newSlug.CreatedAt,
 		UpdatedAt: newSlug.UpdatedAt,
 		DeletedAt: newSlug.DeletedAt,
