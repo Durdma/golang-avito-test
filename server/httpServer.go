@@ -22,8 +22,8 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 	slugsRepository := repositories.NewSlugsRepository(dbHandler)
 	usersRepository := repositories.NewUsersRepository(dbHandler)
 
-	usersService := services.NewUsersService(usersRepository, nil)
-	slugsService := services.NewSlugsService(nil, slugsRepository)
+	usersService := services.NewUsersService(usersRepository, slugsRepository)
+	slugsService := services.NewSlugsService(usersRepository, slugsRepository)
 
 	usersController := controllers.NewUsersController(usersService)
 	slugsController := controllers.NewSlugsController(slugsService)

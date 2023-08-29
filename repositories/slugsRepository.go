@@ -13,13 +13,34 @@ type SlugsRepository struct {
 	transaction *gorm.Tx
 }
 
+func (sr SlugsRepository) SlugExists(slugName string) (*models.Slug, bool) {
+	var slug models.Slug
+
+	result := sr.dbHandler.First(&slug, "slug_name = ?", slugName)
+	if result.Error != nil {
+		if result.Error.Error() == "record not found" {
+			return nil, false
+		}
+	}
+
+	return &models.Slug{
+		SlugId:    slug.SlugId,
+		SlugName:  slugName,
+		CreatedAt: slug.CreatedAt,
+		UpdatedAt: slug.UpdatedAt,
+		DeletedAt: slug.DeletedAt,
+		Disabled:  slug.Disabled,
+	}, true
+}
+
 func NewSlugsRepository(dbHandler *gorm.DB) *SlugsRepository {
 	return &SlugsRepository{dbHandler: dbHandler}
 }
 
+// TODO Добавить функцию обработки списков сегментов и ограничения на таблицы в БД
 // TODO Переделать сообщение об ошибки на internal server error
 func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, *models.ResponseError) {
-	now := time.Now()
+	now := time.Now().Format(time.RFC3339)
 	newSlug := models.Slug{
 		SlugName:  slug.SlugName,
 		CreatedAt: now,
