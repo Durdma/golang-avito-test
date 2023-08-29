@@ -307,6 +307,7 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 // 	return nil, nil
 // }
 
+// TODO ПОДПРАВИТЬ МЕТОД
 func (ur UsersRepository) GetUser(userId string) (*models.User, *models.ResponseError) {
 	var user models.User
 
