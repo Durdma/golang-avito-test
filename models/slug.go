@@ -14,7 +14,7 @@ type Slug struct {
 	UpdatedAt string                `gorm:"not null" json:"updated_at,omitempty"`
 	DeletedAt string                `json:"deleted_at,omitempty"`
 	Disabled  soft_delete.DeletedAt `gorm:"softDelete:flag" json:"disabled,omitempty"`
-	Users     []User                `gorm:"many2many:users_slugs;foreignkey:slug_id;association_foreignkey:user_user_id;association_jointable_foreignkey:user_user_id;jointable_foreignkey:slug_slug_id;"`
+	Users     []User                `json:"-" gorm:"many2many:users_slugs;foreignkey:slug_id;association_foreignkey:user_user_id;association_jointable_foreignkey:user_user_id;jointable_foreignkey:slug_slug_id;"`
 }
 
 type CreateSlug struct {

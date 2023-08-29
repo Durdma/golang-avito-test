@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"avito-test/models"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -37,8 +38,8 @@ func NewSlugsRepository(dbHandler *gorm.DB) *SlugsRepository {
 	return &SlugsRepository{dbHandler: dbHandler}
 }
 
-// TODO Добавить функцию обработки списков сегментов и ограничения на таблицы в БД
 // TODO Переделать сообщение об ошибки на internal server error
+// TODO добавление повторяющихся записей, добавить проверку, что запись не существует иначе ошибка
 func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, *models.ResponseError) {
 	now := time.Now().Format(time.RFC3339)
 	newSlug := models.Slug{
@@ -67,13 +68,39 @@ func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, 
 func (sr SlugsRepository) DelSlug(slugName string) (*models.Slug, *models.ResponseError) {
 	var response *models.Slug
 
-	result := sr.dbHandler.Where("slug_name = ?", slugName).Delete(&response)
+	result := sr.dbHandler.Where("slug_name = ? AND disabled <> 1", slugName).Delete(&response)
 	if result.Error != nil {
 		return nil, &models.ResponseError{
 			Messsage: result.Error.Error(),
 			Status:   http.StatusInternalServerError,
 		}
 	}
+	if result.RowsAffected == 0 {
+		return nil, &models.ResponseError{
+			Messsage: fmt.Sprintf("Slug %s not found", slugName),
+			Status:   http.StatusNotFound,
+		}
+	}
+
+	result = sr.dbHandler.Where("slug_name = ? AND disabled = 1", slugName).Find(&response)
+	if result.Error != nil {
+		return nil, &models.ResponseError{
+			Messsage: result.Error.Error(),
+			Status:   http.StatusInternalServerError,
+		}
+	}
+
+	response.UpdatedAt = time.Now().Format(time.RFC3339)
+	response.DeletedAt = time.Now().Format(time.RFC3339)
+
+	result = sr.dbHandler.Save(&response)
+	if result.Error != nil {
+		return nil, &models.ResponseError{
+			Messsage: result.Error.Error(),
+			Status:   http.StatusInternalServerError,
+		}
+	}
+
 	return &models.Slug{
 		SlugId:    response.SlugId,
 		SlugName:  response.SlugName,
