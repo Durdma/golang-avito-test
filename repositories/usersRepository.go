@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UsersRepository struct {
@@ -81,8 +82,8 @@ func (ur UsersRepository) addSlugsToUser(user *models.User, slugs []string, acti
 func (ur UsersRepository) addUserSlug(userSlug *models.UsersSlugs, userId int, slugId int) *models.ResponseError {
 	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?",
 		userId, slugId).Updates(models.UsersSlugs{SlugSlugID: slugId, UserUserID: userId,
-		CreatedAt: time.Now().Format(time.RFC3339),
-		UpdatedAt: time.Now().Format(time.RFC3339), DeletedAt: ""})
+		CreatedAt: time.Now().Format(time.DateTime),
+		UpdatedAt: time.Now().Format(time.DateTime), DeletedAt: ""})
 	if result.Error != nil {
 		return &models.ResponseError{
 			Messsage: result.Error.Error(),
@@ -98,18 +99,30 @@ func (ur UsersRepository) addUserSlug(userSlug *models.UsersSlugs, userId int, s
 		}
 	}
 
+	err := addUserOperation(ur.dbHandler, true, userSlug)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (ur UsersRepository) delUserSlug(userId int, slugId int) *models.ResponseError {
 	var userSlug models.UsersSlugs
 
-	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?", userId, slugId).Delete(&userSlug)
+	result := ur.dbHandler.Model(&userSlug).Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "slug_slug_id"},
+			{Name: "user_user_id"}}}).Where("user_user_id = ? AND slug_slug_id = ?", userId, slugId).Delete(&userSlug)
 	if result.Error != nil {
 		return &models.ResponseError{
 			Messsage: result.Error.Error(),
 			Status:   http.StatusInternalServerError,
 		}
+	}
+
+	err := addUserOperation(ur.dbHandler, false, &userSlug)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -178,7 +191,7 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 			return nil, err
 		}
 
-		newUser.UpdatedAt = time.Now().Format(time.RFC3339)
+		newUser.UpdatedAt = time.Now().Format(time.DateTime)
 
 		result := ur.dbHandler.Save(&newUser)
 		if result.Error != nil {
@@ -197,8 +210,8 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 		}
 
 		newUser.UserId = user.UserId
-		newUser.CreatedAt = time.Now().Format(time.RFC3339)
-		newUser.UpdatedAt = time.Now().Format(time.RFC3339)
+		newUser.CreatedAt = time.Now().Format(time.DateTime)
+		newUser.UpdatedAt = time.Now().Format(time.DateTime)
 
 		err := ur.addSlugsToUser(&newUser, user.SlugsListToAdd, make([]string, 0))
 		if err != nil {
@@ -213,13 +226,13 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 			}
 		}
 
-		result = ur.dbHandler.Save(&newUser)
-		if result.Error != nil {
-			return nil, &models.ResponseError{
-				Messsage: result.Error.Error(),
-				Status:   http.StatusInternalServerError,
-			}
-		}
+		// result = ur.dbHandler.Save(&newUser)
+		// if result.Error != nil {
+		// 	return nil, &models.ResponseError{
+		// 		Messsage: result.Error.Error(),
+		// 		Status:   http.StatusInternalServerError,
+		// 	}
+		// }
 	}
 	// ТАКИМ ОБРАЗОМ РАБОТАТЬ СО СМЕЖНОЙ ТАБЛИЦЕЙ
 	for _, slug := range newUser.ActiveSlugs {
@@ -311,6 +324,51 @@ func (ur UsersRepository) GetUser(userId string) (*models.User, *models.Response
 	}
 }
 
+// func (ur UsersRepository) addUserOperation(flag bool, userSlug *models.UsersSlugs) *models.ResponseError {
+// 	var history models.History
+
+// 	type slugName struct {
+// 		SlugName string
+// 	}
+
+// 	var slug slugName
+
+// 	history.UserUserId = userSlug.UserUserID
+
+// 	if flag {
+// 		history.Operation = "Added to Segment"
+// 		history.DateInfo = userSlug.CreatedAt
+
+// 		history.SlugName = slug.SlugName
+
+// 	} else {
+// 		history.Operation = "Deleted from Segment"
+// 		history.DateInfo = time.Now().Format(time.RFC3339)
+// 	}
+
+// 	result := ur.dbHandler.Model(&models.Slug{}).Where("slug_id = ?", userSlug.SlugSlugID).First(&slug)
+// 	if result.Error != nil {
+// 		if result.Error.Error() == "record not found" {
+// 			return &models.ResponseError{
+// 				Messsage: result.Error.Error(),
+// 				Status:   http.StatusNotFound,
+// 			}
+// 		}
+// 	}
+
+// 	history.SlugName = slug.SlugName
+
+// 	result = ur.dbHandler.Save(&history)
+// 	if result.Error != nil {
+// 		return &models.ResponseError{
+// 			Messsage: result.Error.Error(),
+// 			Status:   http.StatusInternalServerError,
+// 		}
+// 	}
+
+// 	return nil
+// }
+
 func (ur UsersRepository) GetUserHistory(userId string) (*[]models.History, *models.ResponseError) {
 	var history []models.History
 
@@ -322,8 +380,6 @@ func (ur UsersRepository) GetUserHistory(userId string) (*[]models.History, *mod
 		}
 	}
 
-	//res := ur.dbHandler.Model(&models.UsersHistory).Association("User").
-
 	res := ur.dbHandler.Model(&models.History{}).Where("user_user_id = ?", userIdToGet).Find(&history)
 	if res.Error != nil {
 		return nil, &models.ResponseError{
@@ -332,9 +388,6 @@ func (ur UsersRepository) GetUserHistory(userId string) (*[]models.History, *mod
 		}
 	}
 
-	fmt.Printf("here: \n %+v\n", history)
-	// result := sr.dbHandler.Model(&delSlug).Clauses(clause.Returning{
-	// 	Columns: []clause.Column{{Name: "slug_id"}, {Name: "slug_name"}}}).Where("slug_name = ? AND disabled <> 1", slugName).Delete(&delSlug)
-
+	//fmt.Printf("here: \n %+v\n", history)
 	return &history, nil
 }

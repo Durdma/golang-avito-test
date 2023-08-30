@@ -29,17 +29,3 @@ func (ss SlugsService) DelSlug(slugName string) (*models.Slug, *models.ResponseE
 	// }
 	return ss.slugsRepository.DelSlug(slugName)
 }
-
-func (ss SlugsService) PutSlug(slugName string, newSlug *models.Slug) (*models.Slug, *models.ResponseError) {
-	responseErr := ValidateSlug(newSlug)
-	if responseErr != nil {
-		return nil, responseErr
-	}
-
-	responseErr = ValidateSlugName(slugName)
-	if responseErr != nil {
-		return nil, responseErr
-	}
-
-	return ss.slugsRepository.PutSlug(slugName, newSlug)
-}

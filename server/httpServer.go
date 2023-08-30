@@ -19,6 +19,7 @@ type HttpServer struct {
 
 // For testing on early stages
 func InitHttpServer(dbHandler *gorm.DB) HttpServer {
+
 	slugsRepository := repositories.NewSlugsRepository(dbHandler)
 	usersRepository := repositories.NewUsersRepository(dbHandler)
 

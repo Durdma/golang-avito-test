@@ -26,7 +26,7 @@ func (sr SlugsRepository) slugExists(slugName string) *models.ResponseError {
 	if result.Error != nil {
 		if result.Error.Error() == "record not found" {
 			return &models.ResponseError{
-				Messsage: fmt.Sprintf("slug %s not found", slugName),
+				Messsage: fmt.Sprintf("slug %s not found aadd", slugName),
 				Status:   http.StatusNotFound,
 			}
 		}
@@ -38,7 +38,7 @@ func (sr SlugsRepository) slugExists(slugName string) *models.ResponseError {
 // TODO Переделать сообщение об ошибки на internal server error
 // TODO добавление повторяющихся записей, добавить проверку, что запись не существует иначе ошибка????
 func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, *models.ResponseError) {
-	now := time.Now().Format(time.RFC3339)
+	now := time.Now().Format(time.DateTime)
 	newSlug := models.Slug{
 		SlugName:  slug.SlugName,
 		CreatedAt: now,
@@ -63,13 +63,22 @@ func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, 
 }
 
 func (sr SlugsRepository) delUserSlug(slugId int) *models.ResponseError {
-	var userSlug models.UsersSlugs
+	var usersSlugs []models.UsersSlugs
 
-	result := sr.dbHandler.Model(&userSlug).Where("slug_slug_id = ?", slugId).Delete(&userSlug)
+	result := sr.dbHandler.Model(&models.UsersSlugs{}).Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "user_user_id"},
+			{Name: "slug_slug_id"}}}).Where("slug_slug_id = ?", slugId).Delete(&usersSlugs)
 	if result.Error != nil {
 		return &models.ResponseError{
 			Messsage: result.Error.Error(),
 			Status:   http.StatusInternalServerError,
+		}
+	}
+
+	for _, userSlug := range usersSlugs {
+		err := addUserOperation(sr.dbHandler, false, &userSlug)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -88,7 +97,7 @@ func (sr SlugsRepository) DelSlug(slugName string) (*models.Slug, *models.Respon
 		Columns: []clause.Column{{Name: "slug_id"}, {Name: "slug_name"}}}).Where("slug_name = ? AND disabled <> 1", slugName).Delete(&delSlug)
 	if result.Error != nil {
 		return nil, &models.ResponseError{
-			Messsage: result.Error.Error(),
+			Messsage: fmt.Sprintf("HERE 1: %v", result.Error.Error()),
 			Status:   http.StatusInternalServerError,
 		}
 	}
@@ -98,48 +107,7 @@ func (sr SlugsRepository) DelSlug(slugName string) (*models.Slug, *models.Respon
 		return nil, err
 	}
 
-	// result = sr.dbHandler.Model(&delSlug).Where("slug_name = ? and disabled = 1", slugName).Updates(
-	// 	models.Slug{}
-	// )
-
-	// result := sr.dbHandler.Where("slug_name = ? AND disabled <> 1", slugName).Delete(&delSlug)
-	// if result.Error != nil {
-	// 	return nil, &models.ResponseError{
-	// 		Messsage: result.Error.Error(),
-	// 		Status:   http.StatusInternalServerError,
-	// 	}
-	// }
-	// if result.RowsAffected == 0 {
-	// 	return nil, &models.ResponseError{
-	// 		Messsage: fmt.Sprintf("Slug %s not found", slugName),
-	// 		Status:   http.StatusNotFound,
-	// 	}
-	// }
-
-	// result = sr.dbHandler.Where("slug_name = ? AND disabled = 1", slugName).Find(&delSlug)
-	// if result.Error != nil {
-	// 	return nil, &models.ResponseError{
-	// 		Messsage: result.Error.Error(),
-	// 		Status:   http.StatusInternalServerError,
-	// 	}
-	// }
-
-	// delSlug.UpdatedAt = time.Now().Format(time.RFC3339)
-	// delSlug.DeletedAt = time.Now().Format(time.RFC3339)
-
-	// result = sr.dbHandler.Save(&delSlug)
-	// if result.Error != nil {
-	// 	return nil, &models.ResponseError{
-	// 		Messsage: result.Error.Error(),
-	// 		Status:   http.StatusInternalServerError,
-	// 	}
-	// }
-
 	fmt.Printf("%+v\n", delSlug)
 
 	return &delSlug, nil
-}
-
-func (sr SlugsRepository) PutSlug(slugName string, newSlug *models.Slug) (*models.Slug, *models.ResponseError) {
-	return nil, nil
 }

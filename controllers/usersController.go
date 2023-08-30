@@ -64,7 +64,8 @@ func (uh UsersController) GetUserHistory(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.FileAttachment("./"+response, response)
+	ctx.Writer.Header().Set("attachment", "filename="+response)
 }
 
 // Подумать необходим ли данный поинт

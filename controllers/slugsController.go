@@ -55,30 +55,3 @@ func (us SlugsController) DelSlug(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, response)
 }
-
-func (us SlugsController) PutSlug(ctx *gin.Context) {
-	slugId := ctx.Param("name")
-
-	body, err := io.ReadAll(ctx.Request.Body)
-	if err != nil {
-		log.Println("Error while reading put slug request body!", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
-		return
-	}
-
-	var slug *models.Slug
-	err = json.Unmarshal(body, &slug)
-	if err != nil {
-		log.Println("Error while unmarshaling "+"creates slug request body", err)
-		ctx.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
-	response, responseErr := us.slugsService.PutSlug(slugId, slug)
-	if responseErr != nil {
-		ctx.JSON(responseErr.Status, responseErr)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, response)
-}
