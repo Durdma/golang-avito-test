@@ -8,7 +8,8 @@ type CreateUser struct {
 	CreatedAt      string   `gorm:"type:varchar(150);not null" json:"created_at,omitempty"`
 	UpdatedAt      string   `gorm:"type:varchar(150);not null" json:"updated_at,omitempty"`
 }
-================================================================================
+
+
 TODO Зарефакторить поиск, когда нужно извлечь лишь определнные поля
 аналогично этому коду
 
@@ -19,7 +20,7 @@ type slugName struct {
 	var slug slugName
 
 result := ur.dbHandler.Model(&models.Slug{}).Where("slug_id = ?", userSlug.SlugSlugID).First(&slug)
-===============================================================================
+
 
 Основное задание (минимум):
 
