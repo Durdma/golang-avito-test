@@ -56,6 +56,17 @@ func (uh UsersController) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+func (uh UsersController) GetUserHistory(ctx *gin.Context) {
+	userId := ctx.Param("id")
+	response, responseErr := uh.usersService.GetUserHistory(userId)
+	if responseErr != nil {
+		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
+
 // Подумать необходим ли данный поинт
 // func (uh UsersController) DelUser(ctx *gin.Context) {
 // 	userId := ctx.Param("id")

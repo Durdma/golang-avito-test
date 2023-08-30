@@ -37,6 +37,7 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 		usersRouter.DELETE("/:id", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /user/:id DELETE method", "id": ctx.Param("id")})
 		})
+		usersRouter.GET("/:id/history", usersController.GetUserHistory)
 	}
 
 	slugsRouter := router.Group("/slug")

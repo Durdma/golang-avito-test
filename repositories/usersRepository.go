@@ -4,6 +4,7 @@ import (
 	"avito-test/models"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -77,35 +78,33 @@ func (ur UsersRepository) addSlugsToUser(user *models.User, slugs []string, acti
 	return nil
 }
 
+func (ur UsersRepository) addUserSlug(userSlug *models.UsersSlugs, userId int, slugId int) *models.ResponseError {
+	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?",
+		userId, slugId).Updates(models.UsersSlugs{SlugSlugID: slugId, UserUserID: userId,
+		CreatedAt: time.Now().Format(time.RFC3339),
+		UpdatedAt: time.Now().Format(time.RFC3339), DeletedAt: ""})
+	if result.Error != nil {
+		return &models.ResponseError{
+			Messsage: result.Error.Error(),
+			Status:   http.StatusInternalServerError,
+		}
+	}
+
+	result = ur.dbHandler.Save(&userSlug)
+	if result.Error != nil {
+		return &models.ResponseError{
+			Messsage: result.Error.Error(),
+			Status:   http.StatusInternalServerError,
+		}
+	}
+
+	return nil
+}
+
 func (ur UsersRepository) delUserSlug(userId int, slugId int) *models.ResponseError {
 	var userSlug models.UsersSlugs
 
-	result := ur.dbHandler.Where("user_user_id = ? AND slug_slug_id = ? AND disabled <> 1", userId, slugId).Delete(&userSlug)
-	if result.Error != nil {
-		return &models.ResponseError{
-			Messsage: result.Error.Error(),
-			Status:   http.StatusInternalServerError,
-		}
-	}
-	if result.RowsAffected == 0 {
-		return &models.ResponseError{
-			Messsage: "Something gone wrong!!!",
-			Status:   http.StatusInternalServerError,
-		}
-	}
-
-	result = ur.dbHandler.Where("user_user_id = ? AND slug_slug_id = ? AND disabled = 1", userId, slugId).Find(&userSlug)
-	if result.Error != nil {
-		return &models.ResponseError{
-			Messsage: result.Error.Error(),
-			Status:   http.StatusInternalServerError,
-		}
-	}
-
-	userSlug.UpdatedAt = time.Now().Format(time.RFC3339)
-	userSlug.DeletedAt = time.Now().Format(time.RFC3339)
-
-	result = ur.dbHandler.Save(&userSlug)
+	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?", userId, slugId).Delete(&userSlug)
 	if result.Error != nil {
 		return &models.ResponseError{
 			Messsage: result.Error.Error(),
@@ -154,9 +153,6 @@ func (ur UsersRepository) delSlugsFromUser(user *models.User, slugs []string, ac
 	return nil
 }
 
-// TODO исправить удаление на soft_delete user_slugs
-// TODO вытекает проблема и с добавлением без soft_delete
-// TODO Править время удаления через scoped
 func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
 	var newUser models.User
 	var userSlug models.UsersSlugs
@@ -229,24 +225,9 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 	for _, slug := range newUser.ActiveSlugs {
 		for _, addedSlug := range user.SlugsListToAdd {
 			if addedSlug == slug.SlugName {
-				result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ? AND disabled <> 1",
-					newUser.UserId, slug.SlugId).Updates(models.UsersSlugs{SlugSlugID: slug.SlugId, UserUserID: newUser.UserId,
-					CreatedAt: time.Now().Format(time.RFC3339),
-					UpdatedAt: time.Now().Format(time.RFC3339), DeletedAt: "", Disabled: 0})
-				if result.Error != nil {
-					return nil, &models.ResponseError{
-						Messsage: result.Error.Error(),
-						Status:   http.StatusInternalServerError,
-					}
-				}
-
-				fmt.Printf("%+v\n", userSlug)
-				result = ur.dbHandler.Save(&userSlug)
-				if result.Error != nil {
-					return nil, &models.ResponseError{
-						Messsage: result.Error.Error(),
-						Status:   http.StatusInternalServerError,
-					}
+				err := ur.addUserSlug(&userSlug, newUser.UserId, slug.SlugId)
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -309,20 +290,51 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 
 // TODO ПОДПРАВИТЬ МЕТОД
 func (ur UsersRepository) GetUser(userId string) (*models.User, *models.ResponseError) {
-	var user models.User
+	var user *models.User
 
-	result := ur.dbHandler.First(&user, "user_id = ?", userId)
-	if result.Error != nil {
-		fmt.Println("====")
-		fmt.Println(result.Error)
-		fmt.Println("====")
+	userIdToGet, err := strconv.ParseInt(userId, 0, 0)
+	if err != nil {
 		return nil, &models.ResponseError{
-			Messsage: result.Error.Error(),
+			Messsage: "incorrect id. id must be an uint",
+			Status:   http.StatusBadRequest,
+		}
+	}
+
+	user, exist := ur.userExists(int(userIdToGet))
+	if exist {
+		return user, nil
+	}
+
+	return nil, &models.ResponseError{
+		Messsage: fmt.Sprintf("user with id %v not found", userId),
+		Status:   http.StatusNotFound,
+	}
+}
+
+func (ur UsersRepository) GetUserHistory(userId string) (*[]models.History, *models.ResponseError) {
+	var history []models.History
+
+	userIdToGet, err := strconv.ParseInt(userId, 0, 0)
+	if err != nil {
+		return nil, &models.ResponseError{
+			Messsage: "incorrect id. id must be an uint",
+			Status:   http.StatusBadRequest,
+		}
+	}
+
+	//res := ur.dbHandler.Model(&models.UsersHistory).Association("User").
+
+	res := ur.dbHandler.Model(&models.History{}).Where("user_user_id = ?", userIdToGet).Find(&history)
+	if res.Error != nil {
+		return nil, &models.ResponseError{
+			Messsage: "here history error",
 			Status:   http.StatusInternalServerError,
 		}
 	}
 
-	fmt.Printf("%+v\n", result)
+	fmt.Printf("here: \n %+v\n", history)
+	// result := sr.dbHandler.Model(&delSlug).Clauses(clause.Returning{
+	// 	Columns: []clause.Column{{Name: "slug_id"}, {Name: "slug_name"}}}).Where("slug_name = ? AND disabled <> 1", slugName).Delete(&delSlug)
 
-	return &user, nil
+	return &history, nil
 }

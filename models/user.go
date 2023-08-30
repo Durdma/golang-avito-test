@@ -14,8 +14,3 @@ type CreateUser struct {
 	CreatedAt      string   `gorm:"type:varchar(150);not null" json:"created_at,omitempty"`
 	UpdatedAt      string   `gorm:"type:varchar(150);not null" json:"updated_at,omitempty"`
 }
-
-type UsersSlugsInnerJoin struct {
-	UserId int
-	SlugId int
-}

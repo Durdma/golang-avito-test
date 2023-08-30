@@ -32,6 +32,10 @@ func (us UsersService) GetUser(userId string) (*models.User, *models.ResponseErr
 	return us.usersRepository.GetUser(userId)
 }
 
+func (us UsersService) GetUserHistory(userId string) (*[]models.History, *models.ResponseError) {
+	return us.usersRepository.GetUserHistory(userId)
+}
+
 // Подумать необходим ли данный поинт
 // func (us UsersService) DelUser(userId string) (*models.User, *models.ResponseError) {
 // 	return nil, nil
