@@ -19,10 +19,10 @@ type HttpServer struct {
 	slugsController *controllers.SlugsController
 }
 
-func runCron(task func()) {
+func runCron(taskOne func()) {
 	s := gocron.NewScheduler(time.UTC)
 
-	s.Every(1).Minutes().Do(task)
+	s.Every(1).Minutes().Do(taskOne)
 
 	s.StartBlocking()
 }
@@ -49,9 +49,6 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 	{
 		usersRouter.POST("/", usersController.AddUser)
 		usersRouter.GET("/:id", usersController.GetUser)
-		usersRouter.DELETE("/:id", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /user/:id DELETE method", "id": ctx.Param("id")})
-		})
 		usersRouter.GET("/:id/history", usersController.GetUserHistory)
 	}
 
@@ -59,9 +56,6 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 	{
 		slugsRouter.POST("/", slugsController.CreateSlug)
 		slugsRouter.DELETE("/:name", slugsController.DelSlug)
-		slugsRouter.PUT("/:id", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, gin.H{"message": "PLUG for /slug/:id PUT method", "id": ctx.Param("id")})
-		})
 	}
 
 	router.GET("/", func(ctx *gin.Context) {

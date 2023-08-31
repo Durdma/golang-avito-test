@@ -28,7 +28,7 @@ func (uh UsersController) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	var user models.CreateUserV2
+	var user models.CreateUser
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates user request body", err)
@@ -74,18 +74,6 @@ func (uh UsersController) UpdateUserSlugsBySchedule() {
 		log.Println("error on UpdateUserSlugsBySchedule")
 		return
 	}
-	fmt.Println("Schedule works")
+	fmt.Println("UpdateUser works")
 	return
 }
-
-// Подумать необходим ли данный поинт
-// func (uh UsersController) DelUser(ctx *gin.Context) {
-// 	userId := ctx.Param("id")
-// 	response, responseErr := uh.usersService.DelUser(userId)
-// 	if responseErr != nil {
-// 		ctx.AbortWithStatusJSON(responseErr.Status, responseErr)
-// 		return
-// 	}
-
-// 	ctx.JSON(http.StatusOK, response)
-// }

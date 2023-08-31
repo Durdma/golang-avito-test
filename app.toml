@@ -1,0 +1,15 @@
+##############################################################
+##
+# Database configuration
+[database]
+connection_string = "postgres://postgres:zxc13243546@localhost:5432/User_slug_db"
+max_idle_connections = 5
+max_open_connections = 20
+connection_max_life_time = "60s"
+driver_name = "postgres"
+##############################################################
+##
+# HTTP server configuration
+[http]
+server_address = ":8080"
+##############################################################

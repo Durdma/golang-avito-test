@@ -12,8 +12,7 @@ import (
 )
 
 type UsersRepository struct {
-	dbHandler   *gorm.DB
-	transaction *gorm.Tx
+	dbHandler *gorm.DB
 }
 
 func NewUsersRepository(dbhandler *gorm.DB) *UsersRepository {
@@ -226,7 +225,7 @@ func (ur UsersRepository) addSlugsToUser2(user *models.User, slugs []map[string]
 	return nil
 }
 
-func (ur UsersRepository) AddUserV2(user *models.CreateUserV2) (*models.User, *models.ResponseError) {
+func (ur UsersRepository) AddUserV2(user *models.CreateUser) (*models.User, *models.ResponseError) {
 	var newUser models.User
 	var userSlug models.UsersSlugs
 
@@ -297,7 +296,7 @@ func (ur UsersRepository) AddUserV2(user *models.CreateUserV2) (*models.User, *m
 					days = 24 * days
 
 					dateUntil := time.Now().Add(time.Hour * time.Duration(days)).Format(time.DateTime)
-					result := ur.addUserSlug2(&userSlug, newUser.UserId, slug.SlugId, dateUntil)
+					result := ur.addUserSlug2(&userSlug, newUser.UserId, slug.SlugId, dateUntil) //REFACTOR userSLUG EMPTY
 					if result != nil {
 						return nil, result
 					}

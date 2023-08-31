@@ -11,8 +11,7 @@ import (
 )
 
 type SlugsRepository struct {
-	dbHandler   *gorm.DB
-	transaction *gorm.Tx
+	dbHandler *gorm.DB
 }
 
 func NewSlugsRepository(dbHandler *gorm.DB) *SlugsRepository {
@@ -45,21 +44,23 @@ func (sr SlugsRepository) CreateNewSlug(slug *models.CreateSlug) (*models.Slug, 
 		UpdatedAt: now,
 	}
 
-	result := sr.dbHandler.Create(&newSlug)
-	if result.Error != nil {
-		return nil, &models.ResponseError{
-			Messsage: result.Error.Error(),
-			Status:   http.StatusInternalServerError,
+	result := sr.dbHandler.Limit(1).Find(&newSlug, "slug_name = ?", slug.SlugName)
+	if result.RowsAffected == 0 {
+		err := sr.dbHandler.Create(&newSlug)
+		if err.Error != nil {
+			return nil, &models.ResponseError{
+				Messsage: result.Error.Error(),
+				Status:   http.StatusInternalServerError,
+			}
 		}
+
+		return &newSlug, nil
 	}
-	return &models.Slug{
-		SlugId:    newSlug.SlugId,
-		SlugName:  slug.SlugName,
-		CreatedAt: newSlug.CreatedAt,
-		UpdatedAt: newSlug.UpdatedAt,
-		DeletedAt: newSlug.DeletedAt,
-		Disabled:  newSlug.Disabled,
-	}, nil
+
+	return nil, &models.ResponseError{
+		Messsage: fmt.Sprintf("slug with %v name already exists", newSlug.SlugName),
+		Status:   http.StatusBadRequest,
+	}
 }
 
 func (sr SlugsRepository) delUserSlug(slugId int) *models.ResponseError {

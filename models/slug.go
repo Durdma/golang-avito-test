@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/plugin/soft_delete"
 )
 
@@ -18,8 +16,5 @@ type Slug struct {
 }
 
 type CreateSlug struct {
-	SlugName  string    `json:"slug_name"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	SlugName string `json:"slug_name"`
 }

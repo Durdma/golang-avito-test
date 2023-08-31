@@ -19,11 +19,7 @@ func NewUsersService(usersRepository *repositories.UsersRepository, slugsReposit
 	return &UsersService{usersRepository: usersRepository, slugsRepository: slugsRepository}
 }
 
-func (us UsersService) AddUser(user *models.CreateUserV2) (*models.User, *models.ResponseError) {
-	//responseErr := ValidateUser(user)
-	// if responseErr != nil {
-	// 	return nil, responseErr
-	// }
+func (us UsersService) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
 
 	return us.usersRepository.AddUserV2(user)
 }
@@ -91,7 +87,6 @@ func (us UsersService) GetUserHistory(userId string) (string, *models.ResponseEr
 }
 
 func (us UsersService) UpdateUserSlugsBySchedule() *models.ResponseError {
-
 	err := us.usersRepository.UpdateUserSlugsBySchedule()
 	if err != nil {
 		return err
