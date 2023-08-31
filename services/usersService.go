@@ -19,13 +19,13 @@ func NewUsersService(usersRepository *repositories.UsersRepository, slugsReposit
 	return &UsersService{usersRepository: usersRepository, slugsRepository: slugsRepository}
 }
 
-func (us UsersService) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
+func (us UsersService) AddUser(user *models.CreateUserV2) (*models.User, *models.ResponseError) {
 	//responseErr := ValidateUser(user)
 	// if responseErr != nil {
 	// 	return nil, responseErr
 	// }
 
-	return us.usersRepository.AddUser(user)
+	return us.usersRepository.AddUserV2(user)
 }
 
 func (us UsersService) GetUser(userId string) (*models.User, *models.ResponseError) {
@@ -90,7 +90,12 @@ func (us UsersService) GetUserHistory(userId string) (string, *models.ResponseEr
 	return filename, err
 }
 
-// Подумать необходим ли данный поинт
-// func (us UsersService) DelUser(userId string) (*models.User, *models.ResponseError) {
-// 	return nil, nil
-// }
+func (us UsersService) UpdateUserSlugsBySchedule() *models.ResponseError {
+
+	err := us.usersRepository.UpdateUserSlugsBySchedule()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

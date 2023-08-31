@@ -79,11 +79,39 @@ func (ur UsersRepository) addSlugsToUser(user *models.User, slugs []string, acti
 	return nil
 }
 
-func (ur UsersRepository) addUserSlug(userSlug *models.UsersSlugs, userId int, slugId int) *models.ResponseError {
+// func (ur UsersRepository) addUserSlug(userSlug *models.UsersSlugs, userId int, slugId int) *models.ResponseError {
+// 	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?",
+// 		userId, slugId).Updates(models.UsersSlugs{SlugSlugID: slugId, UserUserID: userId,
+// 		CreatedAt: time.Now().Format(time.DateTime),
+// 		UpdatedAt: time.Now().Format(time.DateTime), DeletedAt: ""})
+// 	if result.Error != nil {
+// 		return &models.ResponseError{
+// 			Messsage: result.Error.Error(),
+// 			Status:   http.StatusInternalServerError,
+// 		}
+// 	}
+
+// 	result = ur.dbHandler.Save(&userSlug)
+// 	if result.Error != nil {
+// 		return &models.ResponseError{
+// 			Messsage: result.Error.Error(),
+// 			Status:   http.StatusInternalServerError,
+// 		}
+// 	}
+
+// 	err := addUserOperation(ur.dbHandler, true, userSlug)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+func (ur UsersRepository) addUserSlug2(userSlug *models.UsersSlugs, userId int, slugId int, until string) *models.ResponseError {
 	result := ur.dbHandler.Model(&userSlug).Where("user_user_id = ? AND slug_slug_id = ?",
 		userId, slugId).Updates(models.UsersSlugs{SlugSlugID: slugId, UserUserID: userId,
 		CreatedAt: time.Now().Format(time.DateTime),
-		UpdatedAt: time.Now().Format(time.DateTime), DeletedAt: ""})
+		UpdatedAt: time.Now().Format(time.DateTime), DeletedAt: "", UntilDate: until})
 	if result.Error != nil {
 		return &models.ResponseError{
 			Messsage: result.Error.Error(),
@@ -166,22 +194,51 @@ func (ur UsersRepository) delSlugsFromUser(user *models.User, slugs []string, ac
 	return nil
 }
 
-func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
+func (ur UsersRepository) addSlugsToUser2(user *models.User, slugs []map[string]string, activeSlugs []string) *models.ResponseError {
+	for _, slugName := range slugs {
+		for _, activeSlugName := range activeSlugs {
+			if slugName["slug_name"] == activeSlugName {
+				return &models.ResponseError{
+					Messsage: fmt.Sprintf("Error in user Slugs list to add"+
+						"user already have this active slug %s", slugName),
+					Status: http.StatusBadRequest,
+				}
+			}
+		}
+	}
+
+	for _, slug := range slugs {
+		var slugToAdd models.Slug
+
+		result := ur.dbHandler.First(&slugToAdd, "slug_name = ?", slug["slug_name"])
+		if result.Error != nil {
+			if result.Error.Error() == "record not found" {
+				return &models.ResponseError{
+					Messsage: fmt.Sprintf("slug %s not found", slug),
+					Status:   http.StatusNotFound,
+				}
+			}
+		}
+
+		user.ActiveSlugs = append(user.ActiveSlugs, slugToAdd)
+	}
+
+	return nil
+}
+
+func (ur UsersRepository) AddUserV2(user *models.CreateUserV2) (*models.User, *models.ResponseError) {
 	var newUser models.User
 	var userSlug models.UsersSlugs
 
 	if result, ok := ur.userExists(user.UserId); ok {
 		newUser = *result
-		// fmt.Println("++++++")
-		// fmt.Printf("%+v\n", newUser)
-		// fmt.Println("++++++")
+
 		activeSlugsNames := make([]string, len(newUser.ActiveSlugs))
 		for _, slug := range newUser.ActiveSlugs {
 			activeSlugsNames = append(activeSlugsNames, slug.SlugName)
-			fmt.Printf("# %s", slug.SlugName)
 		}
 
-		err := ur.addSlugsToUser(&newUser, user.SlugsListToAdd, activeSlugsNames)
+		err := ur.addSlugsToUser2(&newUser, user.SlugsListToAdd, activeSlugsNames)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +257,6 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 				Status:   http.StatusInternalServerError,
 			}
 		}
-
 	} else {
 		if len(user.SlugsListToDel) != 0 {
 			return nil, &models.ResponseError{
@@ -213,7 +269,7 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 		newUser.CreatedAt = time.Now().Format(time.DateTime)
 		newUser.UpdatedAt = time.Now().Format(time.DateTime)
 
-		err := ur.addSlugsToUser(&newUser, user.SlugsListToAdd, make([]string, 0))
+		err := ur.addSlugsToUser2(&newUser, user.SlugsListToAdd, make([]string, 0))
 		if err != nil {
 			return nil, err
 		}
@@ -225,22 +281,31 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 				Status:   http.StatusInternalServerError,
 			}
 		}
-
-		// result = ur.dbHandler.Save(&newUser)
-		// if result.Error != nil {
-		// 	return nil, &models.ResponseError{
-		// 		Messsage: result.Error.Error(),
-		// 		Status:   http.StatusInternalServerError,
-		// 	}
-		// }
 	}
-	// ТАКИМ ОБРАЗОМ РАБОТАТЬ СО СМЕЖНОЙ ТАБЛИЦЕЙ
+
 	for _, slug := range newUser.ActiveSlugs {
 		for _, addedSlug := range user.SlugsListToAdd {
-			if addedSlug == slug.SlugName {
-				err := ur.addUserSlug(&userSlug, newUser.UserId, slug.SlugId)
-				if err != nil {
-					return nil, err
+			if addedSlug["slug_name"] == slug.SlugName {
+				if addedSlug["days"] != "" {
+					days, err := strconv.Atoi(addedSlug["days"]) // исправить на это конвертирование
+					if err != nil {
+						return nil, &models.ResponseError{
+							Messsage: "incorrect id. id must be an uint",
+							Status:   http.StatusBadRequest,
+						}
+					}
+					days = 24 * days
+
+					dateUntil := time.Now().Add(time.Hour * time.Duration(days)).Format(time.DateTime)
+					result := ur.addUserSlug2(&userSlug, newUser.UserId, slug.SlugId, dateUntil)
+					if result != nil {
+						return nil, result
+					}
+				} else {
+					result := ur.addUserSlug2(&userSlug, newUser.UserId, slug.SlugId, "")
+					if result != nil {
+						return nil, result
+					}
 				}
 			}
 		}
@@ -248,6 +313,89 @@ func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *model
 
 	return &newUser, nil
 }
+
+// func (ur UsersRepository) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
+// 	var newUser models.User
+// 	var userSlug models.UsersSlugs
+
+// 	if result, ok := ur.userExists(user.UserId); ok {
+// 		newUser = *result
+// 		// fmt.Println("++++++")
+// 		// fmt.Printf("%+v\n", newUser)
+// 		// fmt.Println("++++++")
+// 		activeSlugsNames := make([]string, len(newUser.ActiveSlugs))
+// 		for _, slug := range newUser.ActiveSlugs {
+// 			activeSlugsNames = append(activeSlugsNames, slug.SlugName)
+// 			fmt.Printf("# %s", slug.SlugName)
+// 		}
+
+// 		err := ur.addSlugsToUser(&newUser, user.SlugsListToAdd, activeSlugsNames)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		err = ur.delSlugsFromUser(&newUser, user.SlugsListToDel, activeSlugsNames)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		newUser.UpdatedAt = time.Now().Format(time.DateTime)
+
+// 		result := ur.dbHandler.Save(&newUser)
+// 		if result.Error != nil {
+// 			return nil, &models.ResponseError{
+// 				Messsage: result.Error.Error(),
+// 				Status:   http.StatusInternalServerError,
+// 			}
+// 		}
+
+// 	} else {
+// 		if len(user.SlugsListToDel) != 0 {
+// 			return nil, &models.ResponseError{
+// 				Messsage: "new user cant have a list of slugs to del",
+// 				Status:   http.StatusBadRequest,
+// 			}
+// 		}
+
+// 		newUser.UserId = user.UserId
+// 		newUser.CreatedAt = time.Now().Format(time.DateTime)
+// 		newUser.UpdatedAt = time.Now().Format(time.DateTime)
+
+// 		err := ur.addSlugsToUser(&newUser, user.SlugsListToAdd, make([]string, 0))
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		result := ur.dbHandler.Create(&newUser)
+// 		if result.Error != nil {
+// 			return nil, &models.ResponseError{
+// 				Messsage: result.Error.Error(),
+// 				Status:   http.StatusInternalServerError,
+// 			}
+// 		}
+
+// 		// result = ur.dbHandler.Save(&newUser)
+// 		// if result.Error != nil {
+// 		// 	return nil, &models.ResponseError{
+// 		// 		Messsage: result.Error.Error(),
+// 		// 		Status:   http.StatusInternalServerError,
+// 		// 	}
+// 		// }
+// 	}
+// 	// ТАКИМ ОБРАЗОМ РАБОТАТЬ СО СМЕЖНОЙ ТАБЛИЦЕЙ
+// 	for _, slug := range newUser.ActiveSlugs {
+// 		for _, addedSlug := range user.SlugsListToAdd {
+// 			if addedSlug == slug.SlugName {
+// 				err := ur.addUserSlug(&userSlug, newUser.UserId, slug.SlugId)
+// 				if err != nil {
+// 					return nil, err
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	return &newUser, nil
+// }
 
 // WORKING!!! ADD!!!
 // func (ur UsersRepository) addSlugsToUser(userId string, listToAdd []*models.Slug) ([]*models.Slug, *models.ResponseError) {
@@ -390,4 +538,51 @@ func (ur UsersRepository) GetUserHistory(userId string) (*[]models.History, *mod
 
 	//fmt.Printf("here: \n %+v\n", history)
 	return &history, nil
+}
+
+func (ur UsersRepository) UpdateUserSlugsBySchedule() *models.ResponseError {
+	type userSlugTime struct {
+		UserUserID int
+		SlugSlugID int
+		UntilDate  string
+	}
+
+	var records []userSlugTime
+
+	fmt.Println("We are here")
+
+	result := ur.dbHandler.Model(&models.UsersSlugs{}).Where("until_date <> ''").Find(&records)
+	if result.Error != nil {
+		return &models.ResponseError{
+			Messsage: "Error on UpdateUserSlugsBySchedule" + result.Error.Error(),
+			Status:   http.StatusInternalServerError,
+		}
+	}
+
+	//fmt.Println(records)
+
+	for _, rec := range records {
+		untilDate, err := time.Parse(time.DateTime, rec.UntilDate)
+		if err != nil {
+			return &models.ResponseError{
+				Messsage: err.Error(),
+				Status:   http.StatusInternalServerError,
+			}
+		}
+
+		// fmt.Printf("time now: %v\n", time.Now().UTC())
+		// fmt.Printf("rec time: %v\n", untilDate)
+		// fmt.Printf("eq: %v\n", time.Now().UTC().Add(3*time.Hour).Equal(untilDate))
+		// fmt.Printf("gt: %v\n", time.Now().UTC().Add(3*time.Hour).After((untilDate)))
+		// fmt.Printf("res: %v\n", time.Now().UTC().Add(3*time.Hour).Equal(untilDate) || time.Now().UTC().Add(3*time.Hour).After((untilDate)))
+		if time.Now().UTC().Add(3*time.Hour).Equal(untilDate) || time.Now().UTC().Add(3*time.Hour).After((untilDate)) {
+			err := ur.delUserSlug(rec.UserUserID, rec.SlugSlugID)
+			if err != nil {
+				return err
+			}
+			//fmt.Println("We are indel zone")
+		}
+	}
+
+	return nil
 }

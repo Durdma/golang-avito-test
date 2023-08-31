@@ -6,4 +6,5 @@ type UsersSlugs struct {
 	CreatedAt  string `gorm:"not null" json:"created_at,omitempty"`
 	UpdatedAt  string `gorm:"not null" json:"updated_at,omitempty"`
 	DeletedAt  string `json:"deleted_at,omitempty"`
+	UntilDate  string `json:"until_date,omitempty"`
 }

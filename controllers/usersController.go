@@ -28,7 +28,7 @@ func (uh UsersController) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	var user models.CreateUser
+	var user models.CreateUserV2
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Println("Error while unmarshaling "+"creates user request body", err)
@@ -66,6 +66,16 @@ func (uh UsersController) GetUserHistory(ctx *gin.Context) {
 
 	ctx.FileAttachment("./"+response, response)
 	ctx.Writer.Header().Set("attachment", "filename="+response)
+}
+
+func (uh UsersController) UpdateUserSlugsBySchedule() {
+	err := uh.usersService.UpdateUserSlugsBySchedule()
+	if err != nil {
+		log.Println("error on UpdateUserSlugsBySchedule")
+		return
+	}
+	fmt.Println("Schedule works")
+	return
 }
 
 // Подумать необходим ли данный поинт

@@ -6,8 +6,10 @@ import (
 	"avito-test/services"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +17,14 @@ type HttpServer struct {
 	router          *gin.Engine
 	usersController *controllers.UsersController
 	slugsController *controllers.SlugsController
+}
+
+func runCron(task func()) {
+	s := gocron.NewScheduler(time.UTC)
+
+	s.Every(1).Minutes().Do(task)
+
+	s.StartBlocking()
 }
 
 // For testing on early stages
@@ -28,6 +38,10 @@ func InitHttpServer(dbHandler *gorm.DB) HttpServer {
 
 	usersController := controllers.NewUsersController(usersService)
 	slugsController := controllers.NewSlugsController(slugsService)
+
+	go func() {
+		runCron(usersController.UpdateUserSlugsBySchedule)
+	}()
 
 	router := gin.Default()
 
