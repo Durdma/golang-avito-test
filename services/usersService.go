@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type UsersService struct {
@@ -20,6 +22,17 @@ func NewUsersService(usersRepository *repositories.UsersRepository, slugsReposit
 }
 
 func (us UsersService) AddUser(user *models.CreateUser) (*models.User, *models.ResponseError) {
+	validate := validator.New()
+	validate.RegisterValidation("slugs_list_to_add", validateSlugsListToAdd)
+	validate.RegisterValidation("slugs_list_to_del", validateSlugsListToDel)
+
+	err := validate.Struct(user)
+	if err != nil {
+		return nil, &models.ResponseError{
+			Messsage: err.Error(),
+			Status:   http.StatusBadRequest,
+		}
+	}
 
 	return us.usersRepository.AddUserV2(user)
 }

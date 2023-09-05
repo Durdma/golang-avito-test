@@ -7,17 +7,10 @@ type User struct {
 	UpdatedAt   string `gorm:"type:varchar(150);not null" json:"updated_at,omitempty"`
 }
 
-// On service after validate create new struct ValidatedUSer with correct fields
 type CreateUser struct {
-	UserId         int                 `json:"user_id"`
-	SlugsListToAdd []map[string]string `json:"slugs_list_to_add,omitempty"`
-	SlugsListToDel []string            `json:"slugs_list_to_del,omitempty"`
-}
-
-type ValidatedUser struct {
-	UserId         int
-	SlugsListToAdd []map[string]string
-	SlugsListToDel []string
+	UserId         int                 `json:"user_id" validate:"required,gte=1"`
+	SlugsListToAdd []map[string]string `json:"slugs_list_to_add,omitempty" validate:"omitempty,slugs_list_to_add"`
+	SlugsListToDel []string            `jsonL:"slugs_list_to_del,omitempty" validate:"omitempty,slugs_list_to_del"`
 }
 
 // JSON FORMAT
